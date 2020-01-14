@@ -4,6 +4,7 @@
 		"tslint:recommended"
 	],
 	"rules": {
+		"class-name": false,
 		"no-empty": false,
 		"ban-types": false,
 		"max-classes-per-file": false,

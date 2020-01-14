@@ -2,12 +2,14 @@
   "name": "react-simple-compat",
   "version": "0.0.0",
   "description": "Simple React for compatible use",
-  "main": "index.js",
+  "main": "./dist/compat.cjs.js",
+  "module": "./dist/compat.esm.js",
+  "sideEffects": false,
+  "types": "declaration/index.d.ts",
   "scripts": {
     "start": "rollup -c -w",
-    "build": "rollup -c"
+    "build": "rollup -c && tsc -p tsconfig.declaration.json && print-sizes ./dist"
   },
-  
   "repository": {
     "type": "git",
     "url": "git+https://github.com/daybrush/react-simple-compat.git"
@@ -29,6 +31,7 @@
   },
   "dependencies": {
     "@daybrush/utils": "^0.10.1",
-    "@egjs/list-differ": "^1.0.0"
+    "@egjs/list-differ": "^1.0.0",
+    "print-sizes": "^0.1.0"
   }
 }

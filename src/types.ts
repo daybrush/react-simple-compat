@@ -1,8 +1,9 @@
 interface CompatElement {
     type: any;
     key: any;
+    ref: () => any;
     props: {
-        children: CompatElement[],
+        children: Array<string | CompatElement>,
         [key: string]: any,
-    },
+    };
 }
