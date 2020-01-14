@@ -1,0 +1,42 @@
+{
+    "name": "test",
+    "version": "1.0.0",
+    "description": "",
+    "main": "index.js",
+    "private": true,
+    "scripts": {
+        "start": "rollup -c -w",
+        "build": "rollup -c"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/daybrush/react-simple-compat.git"
+    },
+    "author": "Daybrush",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/daybrush/react-simple-compat/issues"
+    },
+    "homepage": "https://github.com/daybrush/react-simple-compat#readme",
+    "dependencies": {
+        "@daybrush/drag": "^0.12.0",
+        "@rollup/plugin-alias": "^3.0.0",
+        "@scena/react-guides": "^0.3.2",
+        "@scena/react-ruler": "^0.2.1",
+        "@types/react": "^16.9.17",
+        "@types/react-dom": "^16.9.4",
+        "react": "^16.12.0",
+        "react-dom": "^16.12.0",
+        "react-guides": "^1.0.7",
+        "react-simple-compat": "file:..",
+        "rollup-plugin-preact": "^0.5.2",
+        "rollup-plugin-react-compat": "^0.1.0"
+    },
+    "devDependencies": {
+        "@daybrush/builder": "^0.1.2",
+        "rollup": "^1.29.0",
+        "rollup-plugin-css-bundle": "^1.0.4",
+        "tslint": "^5.20.1",
+        "typescript": "^3.7.4"
+    }
+}
