@@ -2,10 +2,18 @@ import { diff } from "@egjs/list-differ";
 import { IObject } from "@daybrush/utils";
 
 function isDiff(a: object, b: object) {
-    if (a === b) return false;
-	for (let i in a) if (!(i in b)) return true;
-	for (let i in b) if (a[i] !== b[i]) return true;
-	return false;
+    if (a === b) { return false; }
+    for (const i in a) {
+        if (!(i in b)) {
+            return true;
+        }
+    }
+    for (const i in b) {
+        if (a[i] !== b[i]) {
+            return true;
+        }
+    }
+    return false;
 }
 function diffObject(a: object, b: object) {
     const keys1 = Object.keys(a);
@@ -37,10 +45,10 @@ function diffObject(a: object, b: object) {
         added,
         removed,
         changed,
-    }
+    };
 }
 function fillKeys(keys: any[]): string[] {
-    let index = 0;
+    const index = 0;
 
     return keys.map(key => `${key}` || `$compat${index}`);
 }
@@ -60,18 +68,18 @@ export function createElement(
     return {
         type,
         key,
-        props: {...otherProps, children },
+        props: { ...otherProps, children },
     };
 }
 export abstract class Provider<T extends Element | Component | Node = Element | Component | Node> {
-    type: any;
-    key: string;
-    ref: (e: Element | Component | Node) => any;
-    base: T;
-    props = {};
-    _providers: Provider<any>[] = [];
-    abstract _should(nextProps: any, nextState: any): boolean;
-    abstract _render(prevProps: any, nextState: any, hooks: Function[]);
+    public type: any;
+    public key: string;
+    public ref: (e: Element | Component | Node) => any;
+    public base: T;
+    public props = {};
+    public _providers: Array<Provider<any>> = [];
+    public abstract _should(nextProps: any, nextState: any): boolean;
+    public abstract _render(prevProps: any, nextState: any, hooks: Function[]);
     public _update(nextProps: any, nextState: any, hooks: Function[]) {
         // shouldComponentUpdate
         if (!this._should(nextProps, nextState)) {
@@ -150,9 +158,9 @@ export class ComponentProvider extends Provider<Component> {
     }
 }
 export class Component {
-    _provider: Provider;
-    props = {};
-    state = {};
+    public _provider: Provider;
+    public props = {};
+    public state = {};
     public shouldComponentUpdate(props?: any, state?: any): boolean {
         return true;
     }
@@ -160,7 +168,7 @@ export class Component {
         return null;
     }
     public componentDidMount() {}
-    public componentDidUpdate(prevProps, prevState) {}
+    public componentDidUpdate(prevProps, prevState) { }
 
 }
 export class PureComponent extends Component {
