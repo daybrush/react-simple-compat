@@ -4,8 +4,10 @@
   "description": "Simple React for compatible use",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "rollup -c -w",
+    "build": "rollup -c"
   },
+  
   "repository": {
     "type": "git",
     "url": "git+https://github.com/daybrush/react-simple-compat.git"

@@ -9,7 +9,7 @@ export default builder([
         format: "es",
     },
     {
-        input: "src/index.umd.ts",
+        input: "src/index.ts",
         output: "./dist/compat.cjs.js",
         exports: "named",
         format: "cjs",

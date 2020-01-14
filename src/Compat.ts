@@ -80,6 +80,7 @@ export abstract class Provider<T extends Element | Component | Node = Element | 
     public _providers: Array<Provider<any>> = [];
     public abstract _should(nextProps: any, nextState: any): boolean;
     public abstract _render(prevProps: any, nextState: any, hooks: Function[]);
+    public abstract _unmount();
     public _update(nextProps: any, nextState: any, hooks: Function[]) {
         // shouldComponentUpdate
         if (!this._should(nextProps, nextState)) {
@@ -130,6 +131,12 @@ export class ElementProvider extends Provider<Element> {
             }
         });
     }
+    public _unmount() {
+        this._providers.forEach(provider => {
+            provider._unmount();
+        });
+        this.base.parentNode.removeChild(this.base);
+    }
 }
 export class ComponentProvider extends Provider<Component> {
     public _should(nextProps: any, nextState: any) {
@@ -156,6 +163,12 @@ export class ComponentProvider extends Provider<Component> {
             }
         });
     }
+    public _unmount() {
+        this._providers.forEach(provider => {
+            provider._unmount();
+        });
+        this.base.componentWillUnmount();
+    }
 }
 export class Component {
     public _provider: Provider;
@@ -169,6 +182,7 @@ export class Component {
     }
     public componentDidMount() {}
     public componentDidUpdate(prevProps, prevState) { }
+    public componentWillUnmount() { }
 
 }
 export class PureComponent extends Component {
