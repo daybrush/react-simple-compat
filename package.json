@@ -1,6 +1,6 @@
 {
   "name": "react-simple-compat",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Simple React for compatible use",
   "main": "./dist/compat.cjs.js",
   "module": "./dist/compat.esm.js",
@@ -26,12 +26,12 @@
   "homepage": "https://github.com/daybrush/react-simple-compat#readme",
   "devDependencies": {
     "@daybrush/builder": "^0.1.2",
+    "print-sizes": "^0.1.0",
     "tslint": "^5.20.1",
     "typescript": "^3.7.4"
   },
   "dependencies": {
     "@daybrush/utils": "^0.10.1",
-    "@egjs/list-differ": "^1.0.0",
-    "print-sizes": "^0.1.0"
+    "@egjs/list-differ": "^1.0.0"
   }
 }
