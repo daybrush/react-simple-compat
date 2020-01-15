@@ -1,11 +1,11 @@
-import { Component, h } from "preact";
-import { createPortal } from "preact/compat";
-import Moveable, { MoveableProps, PreactMoveableInterface } from "preact-moveable";
+import * as React from "react";
+import { createPortal } from "react-dom";
+import Moveable, { MoveableProps } from "react-moveable";
 import { ref } from "framework-utils";
 
-export default class InnerMoveable extends Component<MoveableProps> {
+export default class InnerMoveable extends React.Component<MoveableProps> {
     public state: MoveableProps = {};
-    public preactMoveable: PreactMoveableInterface;
+    public preactMoveable: any;
     constructor(props: MoveableProps) {
         super(props);
         this.state = this.props;

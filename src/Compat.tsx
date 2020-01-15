@@ -1,5 +1,5 @@
 import { diff } from "@egjs/list-differ";
-import { IObject, isUndefined, isString, isArray } from "@daybrush/utils";
+import { IObject, isUndefined, isString, isArray, find } from "@daybrush/utils";
 
 function isDiff(a: object, b: object) {
     if (a === b) { return false; }
@@ -23,7 +23,7 @@ function diffObject(a: object, b: object) {
 
     const added: IObject<any> = {};
     const removed: IObject<any> = {};
-    const changed: IObject<any> = {};
+    const maintained: IObject<any> = {};
 
     result.added.forEach(index => {
         const name = keys2[index];
@@ -38,15 +38,18 @@ function diffObject(a: object, b: object) {
     result.maintained.forEach(([index]) => {
         const name = keys1[index];
 
-        if (a[name] !== b[name]) {
-            changed[name] = [a[name], b[name]];
-        }
+        maintained[name] = [a[name], b[name]];
     });
     return {
         added,
         removed,
-        changed,
+        maintained,
     };
+}
+function executeHooks(hooks: Function[]) {
+    hooks.forEach(hook => {
+        hook();
+    });
 }
 function fillKeys(keys: any[]): string[] {
     let index = 0;
@@ -108,7 +111,6 @@ export function createElement(
 ): CompatElement {
     const { key, ref, ...otherProps } = props;
 
-    console.log(children, flat(children), flat(children).filter(child => child != null));
     return {
         type,
         key,
@@ -117,20 +119,37 @@ export function createElement(
     };
 }
 export abstract class Provider<T extends Element | Component | Node = Element | Component | Node> {
+    public original: CompatElement | string;
     public base: T;
     public _providers: Array<Provider<any>> = [];
+
     constructor(
         public type: any,
         public key: string,
         public ref: (e: Element | Component | Node) => any,
         public props: IObject<any> = {},
     ) {}
-    public abstract _render(prevProps: any, nextState: any, hooks: Function[]);
+    public abstract _render(hooks: Function[], prevProps: any, nextState: any);
     public abstract _unmount();
     public _should(nextProps: any, nextState: any): boolean {
         return true;
     }
-    public _update(nextElement: CompatElement | string, nextState: any, hooks: Function[]) {
+    public _update(
+        hooks: Function[],
+        nextElement: CompatElement | string,
+        nextState?: any,
+        isForceUpdate?: boolean,
+    ) {
+        if (
+            this.base
+            && !isString(nextElement)
+            && !isForceUpdate
+            && !this._should(nextElement.props, nextState)
+        ) {
+            return false;
+        }
+        this.original = nextElement;
+        this._setState(nextState);
         // render
         const prevProps = this.props;
 
@@ -138,11 +157,15 @@ export abstract class Provider<T extends Element | Component | Node = Element | 
             this.props = nextElement.props;
             this.ref = nextElement.ref;
         }
-        this._render(this.base ? prevProps : {}, nextState, hooks);
+        this._render(hooks, this.base ? prevProps : {}, nextState);
+        return true;
     }
     public _mounted() {
         const ref = this.ref;
         ref && ref(this.base);
+    }
+    public _setState(nextstate: IObject<any>) {
+        return;
     }
     public _updated() {
         const ref = this.ref;
@@ -154,12 +177,12 @@ export abstract class Provider<T extends Element | Component | Node = Element | 
     }
 }
 function diffAttributes(attrs1: IObject<any>, attrs2: IObject<any>, el: Element) {
-    const { added, removed, changed } = diffObject(attrs1, attrs2);
+    const { added, removed, maintained } = diffObject(attrs1, attrs2);
     for (const name in added) {
         el.setAttribute(name, added[name]);
     }
-    for (const name in changed) {
-        el.setAttribute(name, changed[name][1]);
+    for (const name in maintained) {
+        el.setAttribute(name, maintained[name][1]);
     }
     for (const name in removed) {
         el.removeAttribute(name);
@@ -167,20 +190,20 @@ function diffAttributes(attrs1: IObject<any>, attrs2: IObject<any>, el: Element)
 }
 function diffStyle(style1: IObject<any>, style2: IObject<any>, el: HTMLElement | SVGElement) {
     const style = el.style;
-    const { added, removed, changed } = diffObject(style1, style2);
+    const { added, removed, maintained } = diffObject(style1, style2);
 
     for (const name in added) {
         style[name] = added[name];
     }
-    for (const name in changed) {
-        style[name] = changed[name][1];
+    for (const name in maintained) {
+        style[name] = maintained[name][1];
     }
     for (const name in removed) {
         style[name] = "";
     }
 }
 export class TextProvider extends Provider<Node> {
-    public _render(_1, _2, hooks: Function[]) {
+    public _render(hooks: Function[]) {
         const isMount = !this.base;
 
         if (isMount) {
@@ -193,6 +216,7 @@ export class TextProvider extends Provider<Node> {
                 this._updated();
             }
         });
+        return true;
     }
     public _unmount() {
         this.base.parentNode.removeChild(this.base);
@@ -202,12 +226,13 @@ export class ElementProvider extends Provider<Element> {
     public _should(nextProps: any) {
         return isDiff(this.props, nextProps);
     }
-    public _render(prevProps, _, hooks: Function[]) {
+    public _render(hooks: Function[], prevProps) {
         const isMount = !this.base;
 
         if (isMount) {
             this.base = document.createElement(this.type);
         }
+        renderProviders(this.props.children, this._providers, hooks, null, this.base);
         const base = this.base;
 
         diffAttributes(
@@ -220,7 +245,6 @@ export class ElementProvider extends Provider<Element> {
             this.props.style || {},
             base as HTMLElement,
         );
-
         hooks.push(() => {
             if (isMount) {
                 this._mounted();
@@ -228,6 +252,7 @@ export class ElementProvider extends Provider<Element> {
                 this._updated();
             }
         });
+        return true;
     }
     public _unmount() {
         this._providers.forEach(provider => {
@@ -250,10 +275,11 @@ export function findDOMNode(comp: Component | Node | null): Node | null {
     return findDOMNode(providers[0].base);
 }
 export class FunctionProvider extends Provider<Component> {
-    public _render() {
+    public _render(hooks: Function[]) {
         const template = this.type(this.props);
 
-        renderProviders(template ? [template] : [], this._providers);
+        renderProviders(template ? [template] : [], this._providers, hooks);
+        return true;
     }
     public _unmount() {
         this._providers.forEach(provider => {
@@ -276,22 +302,28 @@ export class ComponentProvider extends Provider<Component> {
             nextState || this.base.state,
         );
     }
-    public _render(prevProps, nextState, hooks: Function[]) {
+    public _render(hooks: Function[], prevProps, nextState) {
         this.props = fillProps(this.props, this.type.defaultProps);
         const isMount = !this.base;
 
         if (isMount) {
             this.base = new this.type(this.props);
             this.base._provider = this;
+        } else {
+            this.base.props = this.props;
         }
         const base = this.base;
         const prevState = base.state;
-        base.state = nextState || prevState;
         const template = base.render();
 
-        console.log(template);
-        renderProviders(template ? [template] : [], this._providers);
-
+        if (template && template.props && !template.props.children.length) {
+            template.props.children = this.props.children;
+        }
+        renderProviders(
+            template ? [template] : [],
+            this._providers, hooks, nextState,
+            null,
+        );
         hooks.push(() => {
             if (isMount) {
                 this._mounted();
@@ -302,6 +334,13 @@ export class ComponentProvider extends Provider<Component> {
             }
         });
     }
+    public _setState(nextState?: IObject<any>) {
+        if (!nextState) {
+            return;
+        }
+        const base = this.base;
+        base.state = nextState;
+    }
     public _unmount() {
         this._providers.forEach(provider => {
             provider._unmount();
@@ -311,7 +350,7 @@ export class ComponentProvider extends Provider<Component> {
 }
 export class Component {
     public static defaultProps?: IObject<any>;
-    public _provider: Provider;
+    public _provider: ComponentProvider;
     public state: IObject<any> = {};
     constructor(public props: IObject<any> = {}) {}
     public shouldComponentUpdate(props?: any, state?: any): boolean {
@@ -319,6 +358,29 @@ export class Component {
     }
     public render() {
         return null;
+    }
+    public setState(state: IObject<any>, callback?: Function, isForceUpdate?: boolean) {
+        const hooks: Function[] = [];
+        const provider = this._provider;
+
+        const isUpdate = renderProviders(
+            [provider.original],
+            [provider],
+            hooks,
+            {...this.state, ...state},
+            null,
+            isForceUpdate,
+        );
+
+        if (isUpdate) {
+            if (callback) {
+                hooks.push(callback);
+            }
+            executeHooks(hooks);
+        }
+    }
+    public forceUpdate(callback?: Function) {
+        this.setState(this.state, callback, true);
     }
     public componentDidMount() {}
     public componentDidUpdate(prevProps, prevState) { }
@@ -334,12 +396,12 @@ class _Portal extends PureComponent {
     public componentDidMount() {
         const { element, container } = this.props;
 
-        render(element, container, () => {}, true);
+        renderProvider(element, container);
     }
     public componentDidUpdate() {
         const { element, container } = this.props;
 
-        render(element, container, () => {}, true);
+        renderProvider(element, container);
     }
     public componentWillUnmount() {
         const { container } = this.props;
@@ -347,19 +409,33 @@ class _Portal extends PureComponent {
         render(null, container);
     }
 }
-
-export function renderProviders(
+function updateProviders(
     children: Array<CompatElement | string>,
     providers: Provider[],
     nextState?: any,
     container?: Element,
 ) {
+    const hooks: Function[] = [];
+    renderProviders(
+        children,
+        providers,
+        hooks,
+        nextState,
+        container,
+    );
+    executeHooks(hooks);
+}
+export function renderProviders(
+    children: Array<CompatElement | string>,
+    providers: Provider[],
+    updatedHooks: Function[],
+    nextState?: any,
+    container?: Element,
+    isForceUpdate?: boolean,
+) {
     const keys1 = fillKeys(providers.map(p => p.key));
     const keys2 = fillKeys(children.map(p => isString(p) ? null : p.key));
-
-    console.log(providers.map(p => [p.type, p.key, p.props.className]), children);
     const result = diff(keys1, keys2, key => key);
-    const updatedHooks: Function[] = [];
 
     result.removed.forEach(index => {
         providers.splice(index, 1)[0]._unmount();
@@ -386,45 +462,52 @@ export function renderProviders(
 
         if (type !== childProvider.type) {
             childProvider._unmount();
+            providers.splice(to, 1, createProvider(el, keys2[to]));
         }
-        providers.splice(to, 1, createProvider(el, keys2[to]));
     });
-    providers.forEach((childProvider, i) => {
+    const updated = providers.filter((childProvider, i) => {
         const el = children[i];
 
-        if (!isString(el)) {
-            if (childProvider.base && !childProvider._should(el.props, nextState)) {
+        return childProvider._update(updatedHooks, el, nextState, isForceUpdate);
+    });
+    if (container) {
+        result.added.forEach(index => {
+            const el = findDOMNode(providers[index].base);
+
+            if (!el) {
                 return;
             }
-            renderProviders(el.props.children, childProvider._providers);
-        }
-        childProvider._update(el, nextState, updatedHooks);
-    });
-    if (container && result.added.length && providers[0]) {
-        const pv = providers[0];
-        const rel = findDOMNode(pv.base);
+            const nextProvider = providers[index + 1];
+            if (container !== el && !el.parentNode) {
 
-        if (rel) {
-            (rel as any).__REACT_COMPAT__ = pv;
-        }
-
-        if (rel) {
-            container.appendChild(rel);
-        }
+                const nextElement = findDOMNode(nextProvider && nextProvider.base);
+                container.insertBefore(el, nextElement && nextElement.parentNode ? nextElement : null);
+            }
+        });
     }
-    updatedHooks.forEach(func => {
-        func();
-    });
+    return updated.length > 0;
 }
-export function render(element: any, container: Element, callback?: Function, isNotClear?: boolean) {
-    const provider = (container as any).__REACT_COMPAT__;
-
-    if (element && !provider && !isNotClear) {
-        container.innerHTML = "";
-    }
+export function renderProvider(
+    element: any,
+    container: Element,
+    provider: Provider = (container as any).__REACT_COMPAT__,
+) {
     const providers = provider ? [provider] : [];
 
-    renderProviders(element ? [element] : null, providers, null, container);
+    updateProviders(element ? [element] : null, providers, null, container);
+
+    provider = providers[0];
+    if (provider) {
+        (container as any).__REACT_COMPAT__ = provider;
+    }
+    return provider;
+}
+export function render(element: any, container: Element, callback?: Function) {
+    const provider = (container as any).__REACT_COMPAT__;
+    if (element && !provider) {
+        container.innerHTML = "";
+    }
+    renderProvider(element, container, provider);
     callback && callback();
 }
 

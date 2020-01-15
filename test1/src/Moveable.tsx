@@ -1,6 +1,7 @@
 import EgComponent from "@egjs/component";
 import { ref, Properties } from "framework-utils";
-import { h, render } from "preact";
+import * as React from "react";
+import { render } from "react-dom";
 import InnerMoveable from "./InnerMoveable";
 import { MoveableOptions, MoveableGetterSetter, MoveableEvents } from "./types";
 import {

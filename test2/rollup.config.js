@@ -15,7 +15,7 @@ export default builder([
         output: "demo/dist/index.js",
         format: "iife",
         exports: "named",
-        plugins: [cssbundle({output: "./dist/index.css"}), reactPlugin],
+        plugins: [cssbundle({output: "./demo/dist/index.css"}), reactPlugin],
         resolve: true,
         // uglify: true,
     },
