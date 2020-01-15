@@ -23,7 +23,7 @@ function diffObject(a: object, b: object) {
 
     const added: IObject<any> = {};
     const removed: IObject<any> = {};
-    const maintained: IObject<any> = {};
+    const changed: IObject<any> = {};
 
     result.added.forEach(index => {
         const name = keys2[index];
@@ -37,13 +37,16 @@ function diffObject(a: object, b: object) {
     });
     result.maintained.forEach(([index]) => {
         const name = keys1[index];
+        const values = [a[name], b[name]];
 
-        maintained[name] = [a[name], b[name]];
+        if (a[name] !== b[name]) {
+            changed[name] = values;
+        }
     });
     return {
         added,
         removed,
-        maintained,
+        changed,
     };
 }
 function executeHooks(hooks: Function[]) {
@@ -177,12 +180,12 @@ export abstract class Provider<T extends Element | Component | Node = Element | 
     }
 }
 function diffAttributes(attrs1: IObject<any>, attrs2: IObject<any>, el: Element) {
-    const { added, removed, maintained } = diffObject(attrs1, attrs2);
+    const { added, removed, changed } = diffObject(attrs1, attrs2);
     for (const name in added) {
         el.setAttribute(name, added[name]);
     }
-    for (const name in maintained) {
-        el.setAttribute(name, maintained[name][1]);
+    for (const name in changed) {
+        el.setAttribute(name, changed[name][1]);
     }
     for (const name in removed) {
         el.removeAttribute(name);
@@ -190,13 +193,13 @@ function diffAttributes(attrs1: IObject<any>, attrs2: IObject<any>, el: Element)
 }
 function diffStyle(style1: IObject<any>, style2: IObject<any>, el: HTMLElement | SVGElement) {
     const style = el.style;
-    const { added, removed, maintained } = diffObject(style1, style2);
+    const { added, removed, changed } = diffObject(style1, style2);
 
     for (const name in added) {
         style[name] = added[name];
     }
-    for (const name in maintained) {
-        style[name] = maintained[name][1];
+    for (const name in changed) {
+        style[name] = changed[name][1];
     }
     for (const name in removed) {
         style[name] = "";
@@ -393,20 +396,22 @@ export class PureComponent extends Component {
     }
 }
 class _Portal extends PureComponent {
+    public _portalProvider: Provider;
     public componentDidMount() {
         const { element, container } = this.props;
 
-        renderProvider(element, container);
+        this._portalProvider = renderProvider(element, container);
     }
     public componentDidUpdate() {
         const { element, container } = this.props;
 
-        renderProvider(element, container);
+        this._portalProvider = renderProvider(element, container);
     }
     public componentWillUnmount() {
         const { container } = this.props;
 
-        render(null, container);
+        this._portalProvider = null;
+        renderProvider(null, container);
     }
 }
 function updateProviders(
@@ -446,14 +451,14 @@ export function renderProviders(
         providers.splice(to, 0, childrenProvider);
 
         const el = findDOMNode(childrenProvider.base);
-        const next = findDOMNode(providers[to] && providers[to].base);
+        const next = findDOMNode(providers[to + 1] && providers[to + 1].base);
 
         if (el) {
             el.parentNode.insertBefore(el, next);
         }
     });
     result.added.forEach(index => {
-        providers.push(createProvider(children[index], keys2[index]));
+        providers.splice(index, 0, createProvider(children[index], keys2[index]));
     });
     result.maintained.forEach(([_, to]) => {
         const el = children[to];
@@ -494,12 +499,10 @@ export function renderProvider(
 ) {
     const providers = provider ? [provider] : [];
 
-    updateProviders(element ? [element] : null, providers, null, container);
+    updateProviders(element ? [element] : [], providers, null, container);
 
     provider = providers[0];
-    if (provider) {
-        (container as any).__REACT_COMPAT__ = provider;
-    }
+    (container as any).__REACT_COMPAT__ = provider;
     return provider;
 }
 export function render(element: any, container: Element, callback?: Function) {

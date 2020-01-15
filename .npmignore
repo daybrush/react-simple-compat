@@ -6,6 +6,8 @@ template/
 example/
 karma.conf.js
 test/
+test1/
+test2/
 mocha.opts
 Gruntfile.js
 webpack.*.js

@@ -102,7 +102,7 @@ const groupable = new Moveable(groupableElement.parentElement, {
         target.style.transform = `translate(${poses[i][0]}px, ${poses[i][1]}px)`;
     });
 });
-
+window.ga = groupable;
 window.addEventListener("resize", () => {
     // moveable.updateRect();
     draggable.updateRect();
