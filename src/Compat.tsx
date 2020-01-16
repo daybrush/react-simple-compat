@@ -191,6 +191,19 @@ function diffAttributes(attrs1: IObject<any>, attrs2: IObject<any>, el: Element)
         el.removeAttribute(name);
     }
 }
+function diffEvents(events1: IObject<any>, events2: IObject<any>, el: Element) {
+    const { added, removed, changed } = diffObject(events1, events2);
+    for (const name in added) {
+        el.addEventListener(name, added[name]);
+    }
+    for (const name in changed) {
+        el.removeEventListener(name, changed[name][0]);
+        el.addEventListener(name, changed[name][1]);
+    }
+    for (const name in removed) {
+        el.removeEventListener(name, removed[name]);
+    }
+}
 function diffStyle(style1: IObject<any>, style2: IObject<any>, el: HTMLElement | SVGElement) {
     const style = el.style;
     const { added, removed, changed } = diffObject(style1, style2);
@@ -204,6 +217,22 @@ function diffStyle(style1: IObject<any>, style2: IObject<any>, el: HTMLElement |
     for (const name in removed) {
         style[name] = "";
     }
+}
+function splitProps(props: IObject<any>) {
+    const attributes = {};
+    const events = {};
+
+    for (const name in props) {
+        if (name.indexOf("on") === 0) {
+            events[name.replace("on", "").toLowerCase()] = props[name];
+        } else {
+            attributes[name] = props[name];
+        }
+    }
+    return {
+        attributes,
+        events,
+    };
 }
 export class TextProvider extends Provider<Node> {
     public _render(hooks: Function[]) {
@@ -238,9 +267,22 @@ export class ElementProvider extends Provider<Element> {
         renderProviders(this.props.children, this._providers, hooks, null, this.base);
         const base = this.base;
 
+        const {
+            attributes: prevAttributes,
+            events: prevEvents,
+        } = splitProps(prevProps);
+        const {
+            attributes: nextAttributes,
+            events: nextEvents,
+        } = splitProps(this.props);
         diffAttributes(
-            getAttributes(prevProps),
-            getAttributes(this.props),
+            getAttributes(prevAttributes),
+            getAttributes(nextAttributes),
+            base,
+        );
+        diffEvents(
+            prevEvents,
+            nextEvents,
             base,
         );
         diffStyle(
