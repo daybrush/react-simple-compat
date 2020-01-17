@@ -191,17 +191,25 @@ function diffAttributes(attrs1: IObject<any>, attrs2: IObject<any>, el: Element)
         el.removeAttribute(name);
     }
 }
-function diffEvents(events1: IObject<any>, events2: IObject<any>, el: Element) {
+function diffEvents(
+    events1: IObject<any>,
+    events2: IObject<any>,
+    provier: ElementProvider,
+) {
     const { added, removed, changed } = diffObject(events1, events2);
+
+    for (const name in removed) {
+        provier.removeEventListener(name);
+    }
     for (const name in added) {
-        el.addEventListener(name, added[name]);
+        provier.addEventListener(name, added[name]);
     }
     for (const name in changed) {
-        el.removeEventListener(name, changed[name][0]);
-        el.addEventListener(name, changed[name][1]);
+        provier.removeEventListener(name);
+        provier.addEventListener(name, changed[name][1]);
     }
     for (const name in removed) {
-        el.removeEventListener(name, removed[name]);
+        provier.removeEventListener(name);
     }
 }
 function diffStyle(style1: IObject<any>, style2: IObject<any>, el: HTMLElement | SVGElement) {
@@ -255,6 +263,23 @@ export class TextProvider extends Provider<Node> {
     }
 }
 export class ElementProvider extends Provider<Element> {
+    public events: IObject<Function> = {};
+    public addEventListener(name, callback) {
+        const events = this.events;
+
+        events[name] = e => {
+            e.nativeEvent = e;
+            callback(e);
+        };
+        this.base.addEventListener(name, events[name] as any);
+    }
+    public removeEventListener(name) {
+        const events = this.events;
+
+        this.base.removeEventListener(name, events[name] as any);
+
+        delete events[name];
+    }
     public _should(nextProps: any) {
         return isDiff(this.props, nextProps);
     }
@@ -283,7 +308,7 @@ export class ElementProvider extends Provider<Element> {
         diffEvents(
             prevEvents,
             nextEvents,
-            base,
+            this,
         );
         diffStyle(
             prevProps.style || {},
@@ -300,10 +325,16 @@ export class ElementProvider extends Provider<Element> {
         return true;
     }
     public _unmount() {
+        const events = this.events;
+        const base = this.base;
+        for (const name in events) {
+            base.removeEventListener(name, events[name] as any);
+        }
         this._providers.forEach(provider => {
             provider._unmount();
         });
-        this.base.parentNode.removeChild(this.base);
+        this.events = {};
+        base.parentNode.removeChild(base);
     }
 }
 export function findDOMNode(comp: Component | Node | null): Node | null {
@@ -383,10 +414,12 @@ export class ComponentProvider extends Provider<Component> {
         if (!nextState) {
             return;
         }
+        console.log(this, this.base);
         const base = this.base;
         base.state = nextState;
     }
     public _unmount() {
+        console.log("??", this);
         this._providers.forEach(provider => {
             provider._unmount();
         });
