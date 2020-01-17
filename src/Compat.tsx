@@ -109,10 +109,10 @@ function fillProps(props: IObject<any>, defaultProps: IObject<any>) {
 }
 export function createElement(
     type: any,
-    props: any = {},
+    props: any,
     ...children: any[]
 ): CompatElement {
-    const { key, ref, ...otherProps } = props;
+    const { key, ref, ...otherProps } = props || {};
 
     return {
         type,
@@ -239,7 +239,7 @@ export class TextProvider extends Provider<Node> {
         const isMount = !this.base;
 
         if (isMount) {
-            this.base = document.createTextNode(this.type.replace("text_"));
+            this.base = document.createTextNode(this.type.replace("text_", ""));
         }
         hooks.push(() => {
             if (isMount) {

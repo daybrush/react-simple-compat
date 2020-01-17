@@ -13,6 +13,11 @@ export default class InnerGuides extends React.Component<GuidesOptions, GuidesOp
     }
     public render() {
         const { container, ...state } = this.state;
-        return ReactDOM.createPortal(<ReactGuides ref={ref(this, "preactGuides")} {...state} />, container);
+        return ReactDOM.createPortal(<div>
+            <div className="hi" onClick={() => {
+                console.log("hi");
+            }}>div</div>
+            <ReactGuides ref={ref(this, "preactGuides")} {...state} />
+        </div>, container);
     }
 }
