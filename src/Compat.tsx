@@ -414,12 +414,10 @@ export class ComponentProvider extends Provider<Component> {
         if (!nextState) {
             return;
         }
-        console.log(this, this.base);
         const base = this.base;
         base.state = nextState;
     }
     public _unmount() {
-        console.log("??", this);
         this._providers.forEach(provider => {
             provider._unmount();
         });
@@ -513,8 +511,9 @@ export function renderProviders(
     container?: Element,
     isForceUpdate?: boolean,
 ) {
+    const childrenKeys = children.map(p => isString(p) ? null : p.key);
     const keys1 = fillKeys(providers.map(p => p.key));
-    const keys2 = fillKeys(children.map(p => isString(p) ? null : p.key));
+    const keys2 = fillKeys(childrenKeys);
     const result = diff(keys1, keys2, key => key);
 
     result.removed.forEach(index => {
@@ -533,17 +532,19 @@ export function renderProviders(
         }
     });
     result.added.forEach(index => {
-        providers.splice(index, 0, createProvider(children[index], keys2[index]));
+        providers.splice(index, 0, createProvider(children[index], childrenKeys[index]));
     });
-    result.maintained.forEach(([_, to]) => {
+    const changed = result.maintained.filter(([_, to]) => {
         const el = children[to];
         const childProvider = providers[to];
         const type = isString(el) ? `text_${el}` : el.type;
 
         if (type !== childProvider.type) {
             childProvider._unmount();
-            providers.splice(to, 1, createProvider(el, keys2[to]));
+            providers.splice(to, 1, createProvider(el, childrenKeys[to]));
+            return true;
         }
+        return false;
     });
     const updated = providers.filter((childProvider, i) => {
         const el = children[i];
@@ -551,7 +552,10 @@ export function renderProviders(
         return childProvider._update(updatedHooks, el, nextState, isForceUpdate);
     });
     if (container) {
-        result.added.forEach(index => {
+        [
+            ...result.added,
+            ...changed.map(([_, to]) => to),
+        ].forEach(index => {
             const el = findDOMNode(providers[index].base);
 
             if (!el) {
