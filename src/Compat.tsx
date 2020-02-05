@@ -59,20 +59,22 @@ function fillKeys(keys: any[]): string[] {
 
     return keys.map(key => key == null ? `$compat${++index}` : `${key}`);
 }
-function createProvider(el: CompatElement | string, key: string) {
+function createProvider(el: CompatElement | string, key: string, index: number, container?: Provider) {
     if (isString(el)) {
-        return new TextProvider(`text_${el}`, key, null, {});
+        return new TextProvider(`text_${el}`, key, index, container, null, {});
     }
     const providerClass
         = typeof el.type === "string"
-        ? ElementProvider
-        : el.type.prototype.render
-        ? ComponentProvider
-        : FunctionProvider;
+            ? ElementProvider
+            : el.type.prototype.render
+                ? ComponentProvider
+                : FunctionProvider;
 
     return new providerClass(
         el.type,
         key,
+        index,
+        container,
         el.ref,
         el.props,
     );
@@ -125,13 +127,14 @@ export abstract class Provider<T extends Element | Component | Node = Element | 
     public original: CompatElement | string;
     public base: T;
     public _providers: Array<Provider<any>> = [];
-
     constructor(
         public type: any,
         public key: string,
-        public ref: (e: Element | Component | Node) => any,
+        public index: number,
+        public container?: Provider | null,
+        public ref?: (e: Element | Component | Node) => any,
         public props: IObject<any> = {},
-    ) {}
+    ) { }
     public abstract _render(hooks: Function[], prevProps: any, nextState: any);
     public abstract _unmount();
     public _should(nextProps: any, nextState: any): boolean {
@@ -289,7 +292,7 @@ export class ElementProvider extends Provider<Element> {
         if (isMount) {
             this.base = document.createElement(this.type);
         }
-        renderProviders(this.props.children, this._providers, hooks, null, this.base);
+        renderProviders(this, this._providers, this.props.children, hooks, null);
         const base = this.base;
 
         const {
@@ -337,6 +340,16 @@ export class ElementProvider extends Provider<Element> {
         base.parentNode.removeChild(base);
     }
 }
+function findContainerNode(provider: Provider): Node | null {
+    if (!provider) {
+        return null;
+    }
+    const base = provider.base;
+    if (base instanceof Node) {
+        return base;
+    }
+    return findContainerNode(provider.container);
+}
 export function findDOMNode(comp: Component | Node | null): Node | null {
     if (!comp) {
         return null;
@@ -354,7 +367,7 @@ export class FunctionProvider extends Provider<Component> {
     public _render(hooks: Function[]) {
         const template = this.type(this.props);
 
-        renderProviders(template ? [template] : [], this._providers, hooks);
+        renderProviders(this, this._providers, template ? [template] : [], hooks);
         return true;
     }
     public _unmount() {
@@ -363,14 +376,28 @@ export class FunctionProvider extends Provider<Component> {
         });
     }
 }
-export class ComponentProvider extends Provider<Component> {
+class ContainerProvider extends Provider<any> {
+    constructor(base: Element) {
+        super("container", "container", 0, null);
+        this.base = base;
+    }
+    public _render() {
+        return true;
+    }
+    public _unmount() {
+        return;
+    }
+}
+class ComponentProvider extends Provider<Component> {
     constructor(
         type: typeof Component,
         key: string,
+        index: number,
+        container: Provider | null,
         ref: (e: Element | Component | Node) => any,
         props: IObject<any> = {},
     ) {
-        super(type, key, ref, fillProps(props, type.defaultProps));
+        super(type, key, index, container, ref, fillProps(props, type.defaultProps));
     }
     public _should(nextProps: any, nextState: any) {
         return this.base.shouldComponentUpdate(
@@ -396,8 +423,11 @@ export class ComponentProvider extends Provider<Component> {
             template.props.children = this.props.children;
         }
         renderProviders(
+            this,
+            this._providers,
             template ? [template] : [],
-            this._providers, hooks, nextState,
+            hooks,
+            nextState,
             null,
         );
         hooks.push(() => {
@@ -428,7 +458,7 @@ export class Component {
     public static defaultProps?: IObject<any>;
     public _provider: ComponentProvider;
     public state: IObject<any> = {};
-    constructor(public props: IObject<any> = {}) {}
+    constructor(public props: IObject<any> = {}) { }
     public shouldComponentUpdate(props?: any, state?: any): boolean {
         return true;
     }
@@ -440,14 +470,13 @@ export class Component {
         const provider = this._provider;
 
         const isUpdate = renderProviders(
-            [provider.original],
+            provider.container,
             [provider],
+            [provider.original],
             hooks,
-            {...this.state, ...state},
-            null,
+            { ...this.state, ...state },
             isForceUpdate,
         );
-
         if (isUpdate) {
             if (callback) {
                 hooks.push(callback);
@@ -458,7 +487,7 @@ export class Component {
     public forceUpdate(callback?: Function) {
         this.setState(this.state, callback, true);
     }
-    public componentDidMount() {}
+    public componentDidMount() { }
     public componentDidUpdate(prevProps, prevState) { }
     public componentWillUnmount() { }
 
@@ -487,29 +516,41 @@ class _Portal extends PureComponent {
         renderProvider(null, container);
     }
 }
-function updateProviders(
+function updateProvider(
+    provider: Provider,
     children: Array<CompatElement | string>,
-    providers: Provider[],
     nextState?: any,
-    container?: Element,
 ) {
     const hooks: Function[] = [];
     renderProviders(
+        provider,
+        provider._providers,
         children,
-        providers,
         hooks,
         nextState,
-        container,
     );
     executeHooks(hooks);
 }
-export function renderProviders(
-    children: Array<CompatElement | string>,
+function getNextSibiling(
+    provider: Provider,
+    childProvider: Provider,
+) {
+    const childProviders = provider._providers;
+    const length = childProviders.length;
+
+    for (let i = childProvider.index + 1; i < length; ++i) {
+        const el = findDOMNode(childProviders[i].base);
+
+        if (el) {
+            return el;
+        }
+    }
+    return null;
+}
+export function diffProviders(
+    containerProvider: Provider,
     providers: Provider[],
-    updatedHooks: Function[],
-    nextState?: any,
-    container?: Element,
-    isForceUpdate?: boolean,
+    children: Array<CompatElement | string>,
 ) {
     const childrenKeys = children.map(p => isString(p) ? null : p.key);
     const keys1 = fillKeys(providers.map(p => p.key));
@@ -532,7 +573,7 @@ export function renderProviders(
         }
     });
     result.added.forEach(index => {
-        providers.splice(index, 0, createProvider(children[index], childrenKeys[index]));
+        providers.splice(index, 0, createProvider(children[index], childrenKeys[index], index, containerProvider));
     });
     const changed = result.maintained.filter(([_, to]) => {
         const el = children[to];
@@ -541,31 +582,43 @@ export function renderProviders(
 
         if (type !== childProvider.type) {
             childProvider._unmount();
-            providers.splice(to, 1, createProvider(el, childrenKeys[to]));
+            providers.splice(to, 1, createProvider(el, childrenKeys[to], to, containerProvider));
             return true;
         }
+        childProvider.index = to;
         return false;
     });
-    const updated = providers.filter((childProvider, i) => {
-        const el = children[i];
 
-        return childProvider._update(updatedHooks, el, nextState, isForceUpdate);
+    return [
+        ...result.added,
+        ...changed.map(([_, to]) => to),
+    ];
+}
+export function renderProviders(
+    containerProvider: Provider | null,
+    providers: Provider[],
+    children: Array<CompatElement | string>,
+    updatedHooks: Function[],
+    nextState?: any,
+    isForceUpdate?: boolean,
+) {
+    const result = diffProviders(containerProvider, providers, children);
+    const updated = providers.filter((childProvider, i) => {
+        return childProvider._update(updatedHooks, children[i], nextState, isForceUpdate);
     });
-    if (container) {
-        [
-            ...result.added,
-            ...changed.map(([_, to]) => to),
-        ].forEach(index => {
-            const el = findDOMNode(providers[index].base);
+    const containerNode = findContainerNode(containerProvider);
+
+    if (containerNode) {
+        result.reverse().forEach(index => {
+            const childProvider = providers[index];
+            const el = findDOMNode(childProvider.base);
 
             if (!el) {
                 return;
             }
-            const nextProvider = providers[index + 1];
-            if (container !== el && !el.parentNode) {
-
-                const nextElement = findDOMNode(nextProvider && nextProvider.base);
-                container.insertBefore(el, nextElement && nextElement.parentNode ? nextElement : null);
+            if (containerNode !== el && !el.parentNode) {
+                const nextElement = getNextSibiling(containerProvider, childProvider);
+                containerNode.insertBefore(el, nextElement);
             }
         });
     }
@@ -576,11 +629,11 @@ export function renderProvider(
     container: Element,
     provider: Provider = (container as any).__REACT_COMPAT__,
 ) {
-    const providers = provider ? [provider] : [];
+    if (!provider) {
+        provider = new ContainerProvider(container);
+    }
+    updateProvider(provider, element ? [element] : []);
 
-    updateProviders(element ? [element] : [], providers, null, container);
-
-    provider = providers[0];
     (container as any).__REACT_COMPAT__ = provider;
     return provider;
 }

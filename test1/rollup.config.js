@@ -17,6 +17,7 @@ export default builder([
         exports: "named",
         plugins: [cssbundle({output: "./demo/dist/index.css"}), reactPlugin],
         resolve: true,
+        sourcemap: false,
         // uglify: true,
     },
 ]);

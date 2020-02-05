@@ -102,6 +102,15 @@ const groupable = new Moveable(groupableElement.parentElement, {
         target.style.transform = `translate(${poses[i][0]}px, ${poses[i][1]}px)`;
     });
 });
+setTimeout(() => {
+    console.log("NULL");
+    groupable.target = null;
+
+    setTimeout(() => {
+        console.log("RE TARGET");
+        groupable.target = [].slice.call(groupableElement.querySelectorAll("span"));
+    }, 100)
+}, 100);
 window.ga = groupable;
 window.addEventListener("resize", () => {
     // moveable.updateRect();
