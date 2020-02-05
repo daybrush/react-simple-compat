@@ -123,7 +123,7 @@ export function createElement(
         props: { ...otherProps, children: flat(children).filter(child => child != null) },
     };
 }
-export abstract class Provider<T extends Element | Component | Node = Element | Component | Node> {
+abstract class Provider<T extends Element | Component | Node = Element | Component | Node> {
     public original: CompatElement | string;
     public base: T;
     public _providers: Array<Provider<any>> = [];
@@ -245,7 +245,7 @@ function splitProps(props: IObject<any>) {
         events,
     };
 }
-export class TextProvider extends Provider<Node> {
+class TextProvider extends Provider<Node> {
     public _render(hooks: Function[]) {
         const isMount = !this.base;
 
@@ -265,7 +265,7 @@ export class TextProvider extends Provider<Node> {
         this.base.parentNode.removeChild(this.base);
     }
 }
-export class ElementProvider extends Provider<Element> {
+class ElementProvider extends Provider<Element> {
     public events: IObject<Function> = {};
     public addEventListener(name, callback) {
         const events = this.events;
@@ -363,7 +363,7 @@ export function findDOMNode(comp: Component | Node | null): Node | null {
     }
     return findDOMNode(providers[0].base);
 }
-export class FunctionProvider extends Provider<Component> {
+class FunctionProvider extends Provider<Component> {
     public _render(hooks: Function[]) {
         const template = this.type(this.props);
 
@@ -547,7 +547,7 @@ function getNextSibiling(
     }
     return null;
 }
-export function diffProviders(
+function diffProviders(
     containerProvider: Provider,
     providers: Provider[],
     children: Array<CompatElement | string>,
@@ -594,7 +594,7 @@ export function diffProviders(
         ...changed.map(([_, to]) => to),
     ];
 }
-export function renderProviders(
+function renderProviders(
     containerProvider: Provider | null,
     providers: Provider[],
     children: Array<CompatElement | string>,
@@ -624,7 +624,7 @@ export function renderProviders(
     }
     return updated.length > 0;
 }
-export function renderProvider(
+function renderProvider(
     element: any,
     container: Element,
     provider: Provider = (container as any).__REACT_COMPAT__,
