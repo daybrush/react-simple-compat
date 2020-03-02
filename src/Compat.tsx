@@ -502,18 +502,20 @@ class _Portal extends PureComponent {
     public componentDidMount() {
         const { element, container } = this.props;
 
-        this._portalProvider = renderProvider(element, container);
+        this._portalProvider = new ContainerProvider(container);
+
+        renderProvider(element, container, this._portalProvider);
     }
     public componentDidUpdate() {
         const { element, container } = this.props;
 
-        this._portalProvider = renderProvider(element, container);
+        renderProvider(element, container, this._portalProvider);
     }
     public componentWillUnmount() {
         const { container } = this.props;
 
+        renderProvider(null, container, this._portalProvider);
         this._portalProvider = null;
-        renderProvider(null, container);
     }
 }
 function updateProvider(
@@ -629,12 +631,16 @@ function renderProvider(
     container: Element,
     provider: Provider = (container as any).__REACT_COMPAT__,
 ) {
+    const isProvider = !!provider;
+
     if (!provider) {
         provider = new ContainerProvider(container);
     }
     updateProvider(provider, element ? [element] : []);
 
-    (container as any).__REACT_COMPAT__ = provider;
+    if (isProvider) {
+        (container as any).__REACT_COMPAT__ = provider;
+    }
     return provider;
 }
 export function render(element: any, container: Element, callback?: Function) {

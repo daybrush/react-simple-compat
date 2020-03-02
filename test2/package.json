@@ -6,7 +6,8 @@
     "private": true,
     "scripts": {
         "start": "rollup -c -w",
-        "build": "rollup -c"
+        "build": "rollup -c",
+        "refresh": "npm i ../ && rollup -c"
     },
     "repository": {
         "type": "git",
