@@ -201,7 +201,7 @@ class Moveable extends EgComponent implements MoveableInterface {
      * moveable.destroy();
      */
     public destroy() {
-        render("", this.tempElement);
+        render(null, this.tempElement);
         this.off();
         this.tempElement = null;
         this.innerMoveable = null;

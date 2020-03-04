@@ -638,7 +638,7 @@ function renderProvider(
     }
     updateProvider(provider, element ? [element] : []);
 
-    if (isProvider) {
+    if (!isProvider) {
         (container as any).__REACT_COMPAT__ = provider;
     }
     return provider;

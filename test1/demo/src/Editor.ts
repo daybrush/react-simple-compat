@@ -140,6 +140,8 @@ const moveable = new Moveable(editorElement, {
     hideLabel();
 });
 
+
+(window as any).moveable = moveable;
 const guides1 = new Guides(horizontalRulerElement, {
     type: "horizontal",
     setGuides: refreshGuidelines,
