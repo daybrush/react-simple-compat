@@ -1,5 +1,5 @@
 import { diff } from "@egjs/list-differ";
-import { IObject, isUndefined, isString, isArray, find } from "@daybrush/utils";
+import { IObject, isUndefined, isString, isArray } from "@daybrush/utils";
 
 function isDiff(a: object, b: object) {
     if (a === b) { return false; }
@@ -220,13 +220,25 @@ function diffStyle(style1: IObject<any>, style2: IObject<any>, el: HTMLElement |
     const { added, removed, changed } = diffObject(style1, style2);
 
     for (const name in added) {
-        style[name] = added[name];
+        if (style.setProperty) {
+            style.setProperty(name, added[name]);
+        } else {
+            style[name] = added[name];
+        }
     }
     for (const name in changed) {
-        style[name] = changed[name][1];
+        if (style.setProperty) {
+            style.setProperty(name, changed[name][1]);
+        } else {
+            style[name] = changed[name][1];
+        }
     }
     for (const name in removed) {
-        style[name] = "";
+        if (style.removeProperty) {
+            style.removeProperty(name);
+        } else {
+            style[name] = "";
+        }
     }
 }
 function splitProps(props: IObject<any>) {
