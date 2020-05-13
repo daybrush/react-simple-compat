@@ -120,7 +120,7 @@ export function createElement(
         type,
         key,
         ref,
-        props: { ...otherProps, children: flat(children).filter(child => child != null) },
+        props: { ...otherProps, children: flat(children).filter(child => child != null && child !== false) },
     };
 }
 abstract class Provider<T extends Element | Component | Node = Element | Component | Node> {
