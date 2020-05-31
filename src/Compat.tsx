@@ -223,18 +223,18 @@ function diffStyle(style1: IObject<any>, style2: IObject<any>, el: HTMLElement |
         const name = decamelize(beforeName, "-");
 
         if (style.setProperty) {
-            style.setProperty(name, added[name]);
+            style.setProperty(name, added[beforeName]);
         } else {
-            style[name] = added[name];
+            style[name] = added[beforeName];
         }
     }
     for (const beforeName in changed) {
         const name = decamelize(beforeName, "-");
 
         if (style.setProperty) {
-            style.setProperty(name, changed[name][1]);
+            style.setProperty(name, changed[beforeName][1]);
         } else {
-            style[name] = changed[name][1];
+            style[name] = changed[beforeName][1];
         }
     }
     for (const beforeName in removed) {
