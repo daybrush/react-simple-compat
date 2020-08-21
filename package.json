@@ -1,6 +1,6 @@
 {
   "name": "react-simple-compat",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "Simple React for compatible use",
   "main": "./dist/compat.cjs.js",
   "module": "./dist/compat.esm.js",
@@ -31,7 +31,7 @@
     "typescript": "^3.7.4"
   },
   "dependencies": {
-    "@daybrush/utils": "^0.10.1",
+    "@daybrush/utils": "^1.0.0",
     "@egjs/list-differ": "^1.0.0"
   }
 }
