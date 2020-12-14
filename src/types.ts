@@ -1,4 +1,4 @@
-interface CompatElement {
+export interface CompatElement {
     type: any;
     key: any;
     ref: () => any;

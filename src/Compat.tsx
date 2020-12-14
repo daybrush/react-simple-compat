@@ -1,5 +1,6 @@
 import { diff } from "@egjs/list-differ";
 import { IObject, isUndefined, isString, isArray, decamelize } from "@daybrush/utils";
+import { CompatElement } from "./types";
 
 function isDiff(a: object, b: object) {
     if (a === b) { return false; }
