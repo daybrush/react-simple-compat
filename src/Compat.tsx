@@ -1,5 +1,5 @@
 import { diff } from "@egjs/list-differ";
-import { IObject, isUndefined, isString, isArray, decamelize } from "@daybrush/utils";
+import { IObject, isUndefined, isString, isArray, decamelize, isNumber } from "@daybrush/utils";
 import { CompatElement } from "./types";
 
 function isDiff(a: object, b: object) {
@@ -61,7 +61,7 @@ function fillKeys(keys: any[]): string[] {
     return keys.map(key => key == null ? `$compat${++index}` : `${key}`);
 }
 function createProvider(el: CompatElement | string, key: string, index: number, container?: Provider) {
-    if (isString(el)) {
+    if (isString(el) || isNumber(el)) {
         return new TextProvider(`text_${el}`, key, index, container, null, {});
     }
     const providerClass
