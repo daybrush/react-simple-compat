@@ -309,7 +309,7 @@ class ElementProvider extends Provider<Element> {
         const isMount = !this.base;
 
         if (isMount) {
-            this.base = document.createElement(this.type);
+            this.base = this.props.portalContainer || document.createElement(this.type);
         }
         renderProviders(this, this._providers, this.props.children, hooks, null);
         const base = this.base;
@@ -356,7 +356,10 @@ class ElementProvider extends Provider<Element> {
             provider._unmount();
         });
         this.events = {};
-        base.parentNode.removeChild(base);
+
+        if (!this.props.portalContainer) {
+            base.parentNode.removeChild(base);
+        }
     }
 }
 function findContainerNode(provider: Provider): Node | null {
