@@ -677,3 +677,5 @@ export function render(element: any, container: Element, callback?: Function) {
 export function createPortal(el: any, container: Element) {
     return <_Portal element={el} container={container} />;
 }
+
+export const version = "simple-1.1.0"
