@@ -1,6 +1,6 @@
 {
   "name": "react-simple-compat",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Simple React for compatible use",
   "main": "./dist/compat.cjs.js",
   "module": "./dist/compat.esm.js",

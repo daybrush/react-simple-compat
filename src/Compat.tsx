@@ -286,6 +286,8 @@ class TextProvider extends Provider<Node> {
 }
 class ElementProvider extends Provider<Element> {
     public events: IObject<Function> = {};
+    public _isSVG = false;
+
     public addEventListener(name, callback) {
         const events = this.events;
 
@@ -305,11 +307,25 @@ class ElementProvider extends Provider<Element> {
     public _should(nextProps: any) {
         return isDiff(this.props, nextProps);
     }
-    public _render(hooks: Function[], prevProps) {
+    public _render(hooks: Function[], prevProps: any) {
         const isMount = !this.base;
 
         if (isMount) {
-            this.base = this.props.portalContainer || document.createElement(this.type);
+            const isSVG = this._hasSVG();
+
+            this._isSVG = isSVG;
+
+            let element = this.props.portalContainer;
+
+            if (!element) {
+                const type = this.type;
+                if (isSVG) {
+                    element = document.createElementNS("http://www.w3.org/2000/svg", type);
+                } else {
+                    element = document.createElement(type);
+                }
+            }
+            this.base = element;
         }
         renderProviders(this, this._providers, this.props.children, hooks, null);
         const base = this.base;
@@ -349,6 +365,7 @@ class ElementProvider extends Provider<Element> {
     public _unmount() {
         const events = this.events;
         const base = this.base;
+
         for (const name in events) {
             base.removeEventListener(name, events[name] as any);
         }
@@ -360,6 +377,14 @@ class ElementProvider extends Provider<Element> {
         if (!this.props.portalContainer) {
             base.parentNode.removeChild(base);
         }
+    }
+    private _hasSVG() {
+        if (this._isSVG || this.type === "svg") {
+            return true;
+        }
+        const containerNode = findContainerNode(this.container);
+
+        return containerNode && "ownerSVGElement" in containerNode;
     }
 }
 function findContainerNode(provider: Provider): Node | null {
