@@ -404,7 +404,7 @@ export function findDOMNode(comp: Component | Node | null): Node | null {
     if (comp instanceof Node) {
         return comp;
     }
-    const providers = comp._provider._providers;
+    const providers = comp.$_provider._providers;
     if (!providers.length) {
         return null;
     }
@@ -458,7 +458,7 @@ class ComponentProvider extends Provider<Component> {
 
         if (isMount) {
             this.base = new this.type(this.props);
-            this.base._provider = this;
+            this.base.$_provider = this;
         } else {
             this.base.props = this.props;
         }
@@ -498,13 +498,17 @@ class ComponentProvider extends Provider<Component> {
         this._providers.forEach(provider => {
             provider._unmount();
         });
+        clearTimeout(this.base.$_timer);
         this.base.componentWillUnmount();
     }
 }
 export class Component {
     public static defaultProps?: IObject<any>;
-    public _provider: ComponentProvider;
     public state: IObject<any> = {};
+    public $_provider: ComponentProvider;
+    public $_timer = 0;
+    public $_state: IObject<any> = {};
+
     constructor(public props: IObject<any> = {}) { }
     public shouldComponentUpdate(props?: any, state?: any): boolean {
         return true;
@@ -513,15 +517,39 @@ export class Component {
         return null;
     }
     public setState(state: IObject<any>, callback?: Function, isForceUpdate?: boolean) {
-        const hooks: Function[] = [];
-        const provider = this._provider;
+        if (!this.$_timer) {
+            this.$_state = {};
+        }
+        clearTimeout(this.$_timer);
 
+        this.$_timer = 0;
+        this.$_state = {...this.$_state, ...state};
+
+        if (!isForceUpdate) {
+            this.$_timer = setTimeout(() => {
+                this.$_timer = 0;
+                this.$_setState(callback, isForceUpdate);
+            });
+        } else {
+            this.$_setState(callback, isForceUpdate);
+        }
+        return;
+    }
+    public forceUpdate(callback?: Function) {
+        this.setState({}, callback, true);
+    }
+    public componentDidMount() { }
+    public componentDidUpdate(prevProps, prevState) { }
+    public componentWillUnmount() { }
+    private $_setState(callback?: Function, isForceUpdate?: boolean) {
+        const hooks: Function[] = [];
+        const provider = this.$_provider;
         const isUpdate = renderProviders(
             provider.container,
             [provider],
             [provider.original],
             hooks,
-            { ...this.state, ...state },
+            { ...this.state, ...this.$_state },
             isForceUpdate,
         );
         if (isUpdate) {
@@ -531,13 +559,6 @@ export class Component {
             executeHooks(hooks);
         }
     }
-    public forceUpdate(callback?: Function) {
-        this.setState(this.state, callback, true);
-    }
-    public componentDidMount() { }
-    public componentDidUpdate(prevProps, prevState) { }
-    public componentWillUnmount() { }
-
 }
 export class PureComponent extends Component {
     public shouldComponentUpdate(props?, state?) {
