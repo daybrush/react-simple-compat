@@ -488,10 +488,11 @@ class ComponentProvider extends Provider<Component> {
         });
     }
     public _setState(nextState?: IObject<any>) {
-        if (!nextState) {
+        const base = this.base;
+
+        if (!base || !nextState) {
             return;
         }
-        const base = this.base;
         base.state = nextState;
     }
     public _unmount() {
