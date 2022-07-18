@@ -452,7 +452,7 @@ class ComponentProvider extends Provider<Component> {
             nextState || this.base.state,
         );
     }
-    public _render(hooks: Function[], prevProps, nextState) {
+    public _render(hooks: Function[], prevProps) {
         this.props = fillProps(this.props, this.type.defaultProps);
         const isMount = !this.base;
 
@@ -474,8 +474,6 @@ class ComponentProvider extends Provider<Component> {
             this._providers,
             template ? [template] : [],
             hooks,
-            nextState,
-            null,
         );
         hooks.push(() => {
             if (isMount) {
