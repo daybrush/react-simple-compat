@@ -1,7 +1,7 @@
 
-import builder from "@daybrush/builder";
+const builder = require("@daybrush/builder");
 
-export default builder([
+module.exports = builder([
     {
         input: "src/index.ts",
         output: "./dist/compat.esm.js",
