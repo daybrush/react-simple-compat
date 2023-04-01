@@ -17,22 +17,24 @@ export class ComponentProvider extends Provider<Component> {
     ) {
         super(type, depth, key, index, container, ref, fillProps(props, type.defaultProps));
     }
-    public _should(nextProps: any, nextState: any) {
-        const base = this.base;
+
+    public s(nextProps: any, nextState: any) {
+        const base = this.b;
 
         return base.shouldComponentUpdate(
-            fillProps(nextProps, this.type.defaultProps),
+            fillProps(nextProps, this.t.defaultProps),
             nextState || base.state,
         ) !== false;
     }
-    public _render(hooks: Function[], contexts: Record<string, Component>, prevProps: any) {
-        const self = this;
-        const type: any = self.type;
-        self.props = fillProps(self.props, self.type.defaultProps);
 
-        const props = self.props;
-        let base = self.base;
-        const isMount = !self.base;
+    public r(hooks: Function[], contexts: Record<string, Component>, prevProps: any) {
+        const self = this;
+        const type: any = self.t;
+        self.ps = fillProps(self.ps, self.t.defaultProps);
+
+        const props = self.ps;
+        let base = self.b;
+        const isMount = !self.b;
 
 
         self._cs = contexts;
@@ -56,7 +58,7 @@ export class ComponentProvider extends Provider<Component> {
                 providerComponent.$_subs.push(self);
             }
             if ("prototype" in type && type.prototype.render) {
-                base = new type(self.props, contextValue);
+                base = new type(self.ps, contextValue);
             } else {
                 base = new Component(props, contextValue);
                 base.constructor = type;
@@ -64,7 +66,7 @@ export class ComponentProvider extends Provider<Component> {
             }
             base.$_p = self;
 
-            self.base = base;
+            self.b = base;
         } else {
             base.props = props;
             base.context = contextValue;
@@ -73,7 +75,7 @@ export class ComponentProvider extends Provider<Component> {
         const template = base.render();
 
         if (template && template.props && !template.props.children.length) {
-            template.props.children = self.props.children;
+            template.props.children = self.ps.children;
         }
         const nextContexts = {...contexts, ...base.$_cs };
 
@@ -86,28 +88,29 @@ export class ComponentProvider extends Provider<Component> {
         );
         hooks.push(() => {
             if (isMount) {
-                this._mounted();
+                self.md();
                 base.componentDidMount();
             } else {
-                this._updated();
+                self.ud();
                 base.componentDidUpdate(prevProps, prevState);
             }
         });
     }
-    public _setState(nextState?: IObject<any>) {
-        const base = this.base;
+    public ss(nextState?: IObject<any>) {
+        const base = this.b;
 
         if (!base || !nextState) {
             return;
         }
         base.state = nextState;
     }
-    public _unmount() {
-        this._ps.forEach(provider => {
-            provider._unmount();
+    public un() {
+        const self = this;
+        self._ps.forEach(provider => {
+            provider.ud();
         });
-        const contexts = this._cs;
-        const type = this.type;
+        const contexts = self._cs;
+        const type = self.t;
         const contextType = type.contextType;
 
         if (contextType) {
@@ -115,14 +118,14 @@ export class ComponentProvider extends Provider<Component> {
 
             if (context) {
                 const subs = context.$_subs;
-                const index = findIndex(subs, sub => sub === this);
+                const index = findIndex(subs, sub => sub === self);
 
                 if (index > -1) {
                     subs.splice(index, 1);
                 }
             }
         }
-        clearTimeout(this.base.$_timer);
-        this.base.componentWillUnmount();
+        clearTimeout(self.b.$_timer);
+        self.b.componentWillUnmount();
     }
 }

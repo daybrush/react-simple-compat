@@ -27,21 +27,22 @@ export class Component {
         return this.props !== props || this.state !== state;
     }
     public setState(state: IObject<any>, callback?: Function, isForceUpdate?: boolean) {
-        if (!this.$_timer) {
-            this.$_state = {};
+        const self = this;
+        if (!self.$_timer) {
+            self.$_state = {};
         }
-        clearTimeout(this.$_timer);
+        clearTimeout(self.$_timer);
 
-        this.$_timer = 0;
-        this.$_state = { ...this.$_state, ...state };
+        self.$_timer = 0;
+        self.$_state = { ...self.$_state, ...state };
 
         if (!isForceUpdate) {
-            this.$_timer = window.setTimeout(() => {
-                this.$_timer = 0;
-                this.$_setState(callback, isForceUpdate);
+            self.$_timer = window.setTimeout(() => {
+                self.$_timer = 0;
+                self.$_setState(callback, isForceUpdate);
             });
         } else {
-            this.$_setState(callback, isForceUpdate);
+            self.$_setState(callback, isForceUpdate);
         }
         return;
     }
@@ -56,9 +57,9 @@ export class Component {
         const hooks: Function[] = [];
         const provider = this.$_p;
         const isUpdate = renderProviders(
-            provider.container!,
+            provider.c!,
             [provider],
-            [provider.original],
+            [provider.o],
             hooks,
             provider._cs,
             { ...this.state, ...this.$_state },
@@ -73,6 +74,7 @@ export class Component {
         }
     }
 }
+
 export class PureComponent extends Component {
     public shouldComponentUpdate(props?, state?) {
         return isDiff(this.props, props) || isDiff(this.state, state);

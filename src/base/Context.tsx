@@ -7,20 +7,21 @@ export function createContext(defaultValue?: any): Context {
     const id = `c${++i}`;
 
     function Provider(this: Component, props: any) {
-        if (!this.$_cs[id]) {
-            this.$_cs[id] = this;
+        const self = this;
+        if (!self.$_cs[id]) {
+            self.$_cs[id] = self;
             const $_subs = [];
 
-            this.shouldComponentUpdate = (nextProps) => {
-                if (nextProps.value !== this.props.value) {
+            self.shouldComponentUpdate = (nextProps) => {
+                if (nextProps.value !== self.props.value) {
                     // request
-                    this.$_req = true;
+                    self.$_req = true;
                 }
             }
-            this.render = () => {
-                return this.props.children[0];
+            self.render = () => {
+                return self.props.children[0];
             };
-            this.$_subs = $_subs;
+            self.$_subs = $_subs;
         }
         return props.children[0];
     }

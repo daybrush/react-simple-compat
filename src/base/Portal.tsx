@@ -10,22 +10,25 @@ class Portal extends PureComponent {
      */
     public _pp!: Provider | null;
     public componentDidMount() {
-        const { element, container } = this.props;
+        const self = this;
+        const { element, container } = self.props;
 
-        const parentProvider = this.$_p;
-        this._pp = new ContainerProvider(container, parentProvider.depth + 1);
+        const parentProvider = self.$_p;
+        self._pp = new ContainerProvider(container, parentProvider.d + 1);
 
-        renderProvider(element, container, this._pp, parentProvider._cs);
+        renderProvider(element, container, self._pp, parentProvider._cs);
     }
     public componentDidUpdate() {
-        const { element, container } = this.props;
+        const self = this;
+        const { element, container } = self.props;
 
-        renderProvider(element, container, this._pp, this.$_p._cs);
+        renderProvider(element, container, self._pp, self.$_p._cs);
     }
     public componentWillUnmount() {
-        const { container } = this.props;
+        const self = this;
+        const { container } = self.props;
 
-        renderProvider(null, container, this._pp, this.$_p._cs);
+        renderProvider(null, container, self._pp, self.$_p._cs);
         this._pp = null;
     }
 }

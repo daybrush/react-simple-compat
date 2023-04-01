@@ -10,12 +10,12 @@ import { fillKeys, removeNode } from "./utils";
 export class ContainerProvider extends Provider<any> {
     constructor(base: Element, depth: number) {
         super("container", depth, "container", 0, null);
-        this.base = base;
+        this.b = base;
     }
-    public _render() {
+    public r() {
         return true;
     }
-    public _unmount() {
+    public un() {
         return;
     }
 }
@@ -23,23 +23,24 @@ export class ContainerProvider extends Provider<any> {
 
 
 export class TextProvider extends Provider<Node> {
-    public _render(hooks: Function[]) {
-        const isMount = !this.base;
+    public r(hooks: Function[]) {
+        const self = this;
+        const isMount = !self.b;
 
         if (isMount) {
-            this.base = document.createTextNode(this.type.replace("text_", ""));
+            self.b = document.createTextNode(self.t.replace("text_", ""));
         }
         hooks.push(() => {
             if (isMount) {
-                this._mounted();
+                self.md();
             } else {
-                this._updated();
+                self.ud();
             }
         });
         return true;
     }
-    public _unmount() {
-        removeNode(this.base);
+    public un() {
+        removeNode(this.b);
     }
 }
 
@@ -49,20 +50,20 @@ export function diffProviders(
     children: Array<CompatElement | string>,
 ) {
     const childrenKeys = children.map(p => isString(p) ? null : p.key);
-    const keys1 = fillKeys(providers.map(p => p.key));
+    const keys1 = fillKeys(providers.map(p => p.k));
     const keys2 = fillKeys(childrenKeys);
     const result = diff(keys1, keys2, key => key);
 
     result.removed.forEach(index => {
-        providers.splice(index, 1)[0]._unmount();
+        providers.splice(index, 1)[0].un();
     });
     result.ordered.forEach(([from, to]) => {
         const childrenProvider = providers.splice(from, 1)[0];
 
         providers.splice(to, 0, childrenProvider);
 
-        const el = findDOMNode(childrenProvider.base);
-        const next = findDOMNode(providers[to + 1] && providers[to + 1].base);
+        const el = findDOMNode(childrenProvider.b);
+        const next = findDOMNode(providers[to + 1] && providers[to + 1].b);
 
         if (el) {
             el.parentNode!.insertBefore(el, next);
@@ -76,12 +77,12 @@ export function diffProviders(
         const childProvider = providers[to];
         const type = isString(el) ? `text_${el}` : el.type;
 
-        if (type !== childProvider.type) {
-            childProvider._unmount();
+        if (type !== childProvider.t) {
+            childProvider.un();
             providers.splice(to, 1, createProvider(el, childrenKeys[to], to, containerProvider));
             return true;
         }
-        childProvider.index = to;
+        childProvider.i = to;
         return false;
     });
 

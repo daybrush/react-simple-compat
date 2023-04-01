@@ -11,7 +11,7 @@ export function findDOMNode(comp: Component | Node | null): Node | null {
     if (!providers.length) {
         return null;
     }
-    return findDOMNode(providers[0].base);
+    return findDOMNode(providers[0].b);
 }
 
 

@@ -17,8 +17,8 @@ function getNextSibiling(
     const childProviders = provider._ps;
     const length = childProviders.length;
 
-    for (let i = childProvider.index + 1; i < length; ++i) {
-        const el = findDOMNode(childProviders[i].base);
+    for (let i = childProvider.i + 1; i < length; ++i) {
+        const el = findDOMNode(childProviders[i].b);
 
         if (el) {
             return el;
@@ -29,7 +29,7 @@ function getNextSibiling(
 
 
 export function createProvider(el: CompatElement | string, key: string, index: number, containerProvider: Provider) {
-    const depth = containerProvider.depth + 1;
+    const depth = containerProvider.d + 1;
 
     if (isString(el) || isNumber(el)) {
         return new TextProvider(`text_${el}`, depth, key, index, containerProvider, null, {});
@@ -60,14 +60,14 @@ export function renderProviders(
 ) {
     const result = diffProviders(containerProvider, providers, children);
     const updated = providers.filter((childProvider, i) => {
-        return childProvider._update(updatedHooks, nextContexts, children[i], nextState, isForceUpdate);
+        return childProvider.u(updatedHooks, nextContexts, children[i], nextState, isForceUpdate);
     });
     const containerNode = findContainerNode(containerProvider);
 
     if (containerNode) {
         result.reverse().forEach(index => {
             const childProvider = providers[index];
-            const el = findDOMNode(childProvider.base);
+            const el = findDOMNode(childProvider.b);
 
             if (!el) {
                 return;

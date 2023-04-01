@@ -34,7 +34,9 @@ export function fillProps(props: IObject<any>, defaultProps?: IObject<any>) {
 }
 
 export function isDiff(a: object, b: object) {
-    if (a === b) { return false; }
+    if (a === b) {
+        return false;
+    }
     for (const i in a) {
         if (!(i in b)) {
             return true;
@@ -72,10 +74,10 @@ export function splitProps(props: IObject<any>) {
             attributes[name] = props[name];
         }
     }
-    return {
+    return [
         attributes,
         events,
-    };
+    ];
 }
 
 
@@ -83,11 +85,11 @@ export function findContainerNode(provider?: Provider | null): Node | null {
     if (!provider) {
         return null;
     }
-    const base = provider.base;
+    const base = provider.b;
     if (base instanceof Node) {
         return base;
     }
-    return findContainerNode(provider.container);
+    return findContainerNode(provider.c);
 }
 
 export function removeNode(node: Node) {

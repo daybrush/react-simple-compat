@@ -5,42 +5,47 @@ import { isDiff } from "../utils";
 
 interface HookState {
     type: number;
-    value: any;
+    func: any;
+    value?: any;
     deps: any[];
 }
 interface HookProvider extends Provider {
     /**
      * Hook States
      */
-    _hts: HookState[];
+    _hs: HookState[];
 }
 
 function checkHookState(state: HookState) {
     const inst = getCurrentInstance() as HookProvider;
-    const hts = inst._hts || (inst._hts = []);
+    const hooks = inst._hs || (inst._hs = []);
     const index = getHooksIndex();
-    const prevHt = hts[index];
+    const prevHt = hooks[index];
 
     setHooksInex(index + 1);
     if (prevHt) {
-        if (isDiff(prevHt.deps, state.deps)) {
-            hts[index] = state;
-
-            return state;
+        if (!isDiff(prevHt.deps, state.deps)) {
+            return prevHt;
         }
-        return prevHt;
+        hooks[index] = state;
     } else {
-        hts.push(state);
+        hooks.push(state);
     }
+
+    state.value = state.func();
     return state;
 }
 
-export function useRef(defaultValue: any): any {
+export function useMemo(defaultFunction: () => any, deps?: any[]): any {
     const state = checkHookState({
         type: 0,
-        value: createRef(defaultValue),
-        deps: [],
+        func: defaultFunction,
+        deps,
     });
 
     return state.value;
+}
+
+export function useRef(defaultValue: any): any {
+    return useMemo(() => createRef(defaultValue), []);
 }
