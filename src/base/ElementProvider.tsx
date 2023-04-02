@@ -1,6 +1,5 @@
 import { addEvent, decamelize, getKeys,  removeEvent } from "@daybrush/utils";
 import { diff } from "@egjs/list-differ";
-import EventEmitter from "@scena/event-emitter";
 import { renderProviders } from "../renderProviders";
 import { isDiff, splitProps, getAttributes, findContainerNode, removeNode } from "../utils";
 import { Component } from "./Component";

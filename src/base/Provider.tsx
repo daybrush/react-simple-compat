@@ -1,8 +1,9 @@
 import { find, getValues, IObject, isString } from "@daybrush/utils";
 import { Component } from "./Component";
-import { CompatElement } from "../types";
+import { CompatElement, Ref } from "../types";
 import { flat } from "../utils";
 import { renderProviders } from "../renderProviders";
+import { createRef } from "./refs";
 
 
 let hooksIndex = 0;
@@ -21,6 +22,10 @@ export abstract class Provider<T extends Element | Component | Node = Element | 
      * providers
      */
     public _ps: Array<Provider<any>> = [];
+    /**
+     * Forwarded Ref
+     */
+    public fr?: Ref;
     /**
      * Contexts
      */
@@ -50,7 +55,7 @@ export abstract class Provider<T extends Element | Component | Node = Element | 
         /**
          * Ref
          */
-        public ref?: ((e: Element | Component | Node | null) => any) | null,
+        public ref?: Ref,
         /**
          * Props
          */
@@ -146,8 +151,7 @@ export abstract class Provider<T extends Element | Component | Node = Element | 
         return true;
     }
     public md() {
-        const ref = this.ref;
-        ref && ref(this.b);
+        this.rr();
     }
 
     public ss(nextstate: IObject<any>);
@@ -155,8 +159,17 @@ export abstract class Provider<T extends Element | Component | Node = Element | 
         return;
     }
     public ud() {
-        const ref = this.ref;
-        ref && ref(this.b);
+        this.rr();
+    }
+    /**
+     * register refs
+     */
+    public rr() {
+        const self = this;
+        const ref = self.ref;
+
+        const fr = self.fr;
+        ref && ref(fr ? fr.current : self.b);
     }
 }
 

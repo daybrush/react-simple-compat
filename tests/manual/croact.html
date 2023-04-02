@@ -1,0 +1,85 @@
+<div></div>
+
+<script src="../../dist/croact.js"></script>
+<script>
+    const context1 = Croact.createContext("HI");
+
+    let i = 0;
+    function App(props, context) {
+        setTimeout(() => {
+            ++i;
+            this.forceUpdate();
+            // console.log("Out", Croact.useRef(1).current);
+        }, 1000);
+
+        const ref1 = Croact.useRef(1);
+        const ref2 = Croact.useRef(1).current;
+
+
+        // return Croact.createElement(App2, { i });
+        return Croact.createElement(context1.Provider, { value: "아 이거 아닌데" + i }, [
+            Croact.createElement(App2, { i }),
+        ]);
+    }
+
+
+    function App2(props, context) {
+        return Croact.createElement("div", {
+            "data-a": 3,
+            "data-b": 4,
+        }, [
+            Croact.createElement(App3, { }),
+        ]);
+    }
+
+    function App3(props, context) {
+        const value = Croact.useContext(context1);
+        const ref1 = Croact.useRef();
+        const ref2 = Croact.useRef();
+        const [st, useSt] = Croact.useState(2);
+
+        Croact.useEffect(() => {
+            console.log("CUR", ref1.current, ref2.current);
+            requestAnimationFrame(() => {
+                useSt(3);
+            });
+        }, []);
+        return Croact.createElement("div", {
+            "data-a": 1,
+            "data-b": 2,
+        }, [
+            `HI ${context} ${value}`,
+            st,
+            Croact.createElement(App4, {
+                ref: ref1,
+            }),
+            Croact.createElement(App5, {
+                ref: ref2,
+            }),
+        ]);
+    }
+    const App4 = Croact.forwardRef((props, ref) => {
+        return Croact.createElement("div", {
+            ref: ref,
+        }, [`HI1`]);
+    });
+
+    const App5 = Croact.forwardRef((props, ref) => {
+        const ref1 = Croact.useRef();
+
+        Croact.useImperativeHandle(ref, () => {
+            console.log("App5 useImperativeHandle", ref1.current);;
+            return ref1.current;
+        }, []);
+
+        return Croact.createElement("div", {
+            ref: ref1,
+        }, [`HI2`]);
+    });
+
+    App3.contextType = context1;
+    Croact.render(
+        Croact.createElement(App),
+        document.querySelector("div"),
+    );
+</script>

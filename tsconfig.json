@@ -13,7 +13,9 @@
       "dom"
     ],
     "jsx": "react",
-    "jsxFactory": "createElement"
+    "jsxFactory": "createElement",
+    "importHelpers": true,
+    "noEmitHelpers": true
   },
   "include": [
     "./src/**/*.ts", "src/Compat.tsx"

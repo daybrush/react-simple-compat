@@ -1,18 +1,31 @@
 import { findIndex, IObject } from "@daybrush/utils";
 import { renderProviders } from "../renderProviders";
-import { Context } from "../types";
+import { Context, Ref } from "../types";
 import { fillProps, renderFunctionComponent } from "../utils";
 import { Component } from "./Component";
 import { Provider } from "./Provider";
+import { createRef } from "./refs";
 
 export class ComponentProvider extends Provider<Component> {
+    /**
+     * Update shift effects
+     */
+    public _usefs: Array<() => (() => any) | undefined | void> = [];
+    /**
+     * Update effects
+     */
+    public _uefs: Array<() => (() => any) | undefined | void> = [];
+    /**
+     * Destroy effects
+     */
+    public _defs: Array<undefined | void | (() => void)> = [];
     constructor(
         type: typeof Component,
         depth: number,
         key: string,
         index: number,
         container?: Provider | null,
-        ref?: (e: Element | Component | Node | null) => any,
+        ref?: Ref,
         props: IObject<any> = {},
     ) {
         super(type, depth, key, index, container, ref, fillProps(props, type.defaultProps));
@@ -33,36 +46,28 @@ export class ComponentProvider extends Provider<Component> {
         self.ps = fillProps(self.ps, self.t.defaultProps);
 
         const props = self.ps;
-        let base = self.b;
         const isMount = !self.b;
-
+        const contextType: Context = type.contextType;
+        let base = self.b;
+        let contextValue = (type.contextType as Context)?.get(self);
 
         self._cs = contexts;
-
-        const contextType: Context = type.contextType;
-        let contextValue!: any;
-        let providerComponent!: Component;
-
-        if (contextType) {
-            const contextId = contextType.$_id;
-
-            if (contextId in contexts) {
-                providerComponent = contexts[contextId];
-                contextValue = providerComponent.props.value;
-            } else {
-                contextValue = contextType.$_dv;
-            }
-        }
         if (isMount) {
-            if (providerComponent) {
-                providerComponent.$_subs.push(self);
-            }
-            if ("prototype" in type && type.prototype.render) {
+            if (type?.prototype?.render) {
                 base = new type(self.ps, contextValue);
             } else {
                 base = new Component(props, contextValue);
                 base.constructor = type;
-                base.render = renderFunctionComponent;
+
+                if (type._fr) {
+                    console.log(self);
+                    self.fr = createRef();
+                    base.render = function (this: Component) {
+                        return this.constructor(this.props, self.fr);
+                    }
+                } else {
+                    base.render = renderFunctionComponent;
+                }
             }
             base.$_p = self;
 
@@ -72,12 +77,15 @@ export class ComponentProvider extends Provider<Component> {
             base.context = contextValue;
         }
         const prevState = base.state;
+
+        self._usefs = [];
+        self._uefs = [];
         const template = base.render();
 
-        if (template && template.props && !template.props.children.length) {
+        if (template?.props?.children?.length === 0) {
             template.props.children = self.ps.children;
         }
-        const nextContexts = {...contexts, ...base.$_cs };
+        const nextContexts = { ...contexts, ...base.$_cs };
 
         renderProviders(
             self,
@@ -86,14 +94,26 @@ export class ComponentProvider extends Provider<Component> {
             hooks,
             nextContexts,
         );
+        if (isMount) {
+            self._uefs.push(() => {
+                contextType?.register(self);
+                base.componentDidMount();
+            });
+        } else {
+            self._uefs.push(() => {
+                base.componentDidUpdate(prevProps, prevState);
+            });
+        }
         hooks.push(() => {
+            self._usefs.forEach(ef => {
+                ef();
+            });
             if (isMount) {
                 self.md();
-                base.componentDidMount();
             } else {
                 self.ud();
-                base.componentDidUpdate(prevProps, prevState);
             }
+            self._defs = self._uefs.map(ef => ef());
         });
     }
     public ss(nextState?: IObject<any>) {
@@ -109,23 +129,13 @@ export class ComponentProvider extends Provider<Component> {
         self._ps.forEach(provider => {
             provider.ud();
         });
-        const contexts = self._cs;
         const type = self.t;
-        const contextType = type.contextType;
-
-        if (contextType) {
-            const context = contexts[contextType];
-
-            if (context) {
-                const subs = context.$_subs;
-                const index = findIndex(subs, sub => sub === self);
-
-                if (index > -1) {
-                    subs.splice(index, 1);
-                }
-            }
-        }
+        (type.contextType as Context)?.unregister(self);
         clearTimeout(self.b.$_timer);
+
+        self._defs.forEach(def => {
+            def && def();
+        });
         self.b.componentWillUnmount();
     }
 }
