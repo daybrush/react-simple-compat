@@ -1,27 +1,43 @@
-import { ComponentProvider } from "../base/ComponentProvider";
 import { createRef } from "../base/refs";
 import { getCurrentInstance, getHooksIndex, setHooksInex } from "../base/Provider";
-import { Context, Ref } from "../types";
+import { Context, ContextProvider, Ref } from "../types";
 import { isDiff } from "../utils";
 import type { Component } from "../base/Component";
 import { isFunction } from "@daybrush/utils";
 
-interface HookInfo {
+export interface HookInfo {
     func?: any;
     effect?: (() => any) | void;
     value?: any;
     updated?: boolean;
     deps: any[];
 }
-interface HookProvider extends ComponentProvider {
+
+export interface HooksProvider extends ContextProvider {
+    /**
+     * base
+     */
+    b: Component;
     /**
      * Hook States
      */
-    _hs: HookInfo[];
+    _hs?: HookInfo[];
+        /**
+     * Update shift effects
+     */
+    _usefs: Array<() => (() => any) | undefined | void>;
+    /**
+     * Update effects
+     */
+    _uefs: Array<() => (() => any) | undefined | void>;
+    /**
+     * Destroy effects
+     */
+    _defs: Array<undefined | void | (() => void)>;
 }
 
 function checkHookInfo(info: HookInfo) {
-    const inst = getCurrentInstance() as HookProvider;
+    const inst = getCurrentInstance() as HooksProvider;
     const hooks = inst._hs || (inst._hs = []);
     const index = getHooksIndex();
     const prevHt = hooks[index];
@@ -56,7 +72,7 @@ export function useRef(defaultValue: any): any {
 }
 
 export function useContext(context: Context) {
-    const inst = getCurrentInstance() as HookProvider;
+    const inst = getCurrentInstance() as HooksProvider;
     const contextId = context.$_id;
     const contexts = inst._cs;
     let providerComponent!: Component;
@@ -79,7 +95,7 @@ export function useContext(context: Context) {
     return context.get(inst);
 }
 export function useState(st?: any | (() => any)): [any, (nextValue: any) => void] {
-    const inst = getCurrentInstance() as HookProvider;
+    const inst = getCurrentInstance() as HooksProvider;
     const index = getHooksIndex();
     const comp = inst.b;
 
@@ -95,7 +111,7 @@ export function useState(st?: any | (() => any)): [any, (nextValue: any) => void
     ];
 }
 export function useEffect(effect: () => (() => any) | undefined | void, deps?: any[], unshift?: boolean) {
-    const inst = getCurrentInstance() as HookProvider;
+    const inst = getCurrentInstance() as HooksProvider;
     const info = checkHookInfo({
         func: () => effect,
         deps,

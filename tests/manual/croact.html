@@ -6,11 +6,13 @@
 
     let i = 0;
     function App(props, context) {
-        setTimeout(() => {
-            ++i;
-            this.forceUpdate();
-            // console.log("Out", Croact.useRef(1).current);
-        }, 1000);
+        Croact.useEffect(() => {
+            setTimeout(() => {
+                ++i;
+                this.forceUpdate();
+                // console.log("Out", Croact.useRef(1).current);
+            }, 1000);
+        });
 
         const ref1 = Croact.useRef(1);
         const ref2 = Croact.useRef(1).current;
@@ -28,7 +30,7 @@
             "data-a": 3,
             "data-b": 4,
         }, [
-            Croact.createElement(App3, { }),
+            Croact.createElement(App3, {}),
         ]);
     }
 
@@ -78,8 +80,13 @@
     });
 
     App3.contextType = context1;
-    Croact.render(
+
+    console.log("SELF", document.querySelector("div"));
+    const containerProvider = Croact.renderSelf(
         Croact.createElement(App),
         document.querySelector("div"),
     );
+
+
+    console.log(Croact.renderToString(Croact.createElement(App)));
 </script>

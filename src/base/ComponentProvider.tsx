@@ -1,4 +1,5 @@
-import { findIndex, IObject } from "@daybrush/utils";
+import { IObject } from "@daybrush/utils";
+import { HookInfo, HooksProvider } from "../hooks/hooks";
 import { renderProviders } from "../renderProviders";
 import { Context, Ref } from "../types";
 import { fillProps, renderFunctionComponent } from "../utils";
@@ -6,7 +7,35 @@ import { Component } from "./Component";
 import { Provider } from "./Provider";
 import { createRef } from "./refs";
 
-export class ComponentProvider extends Provider<Component> {
+
+export function createComponent(
+    type: any,
+    props: any,
+    contextValue: any,
+    self: any,
+) {
+    let base!: Component;
+    if (type?.prototype?.render) {
+        base = new type(props, contextValue);
+    } else {
+        base = new Component(props, contextValue);
+        base.constructor = type;
+
+        if (type._fr) {
+            self.fr = createRef();
+            base.render = function (this: Component) {
+                return this.constructor(this.props, self.fr);
+            }
+        } else {
+            base.render = renderFunctionComponent;
+        }
+    }
+    base.$_p = self;
+    return base;
+}
+
+export class ComponentProvider extends Provider<Component> implements HooksProvider {
+    public typ = "comp";
     /**
      * Update shift effects
      */
@@ -19,6 +48,10 @@ export class ComponentProvider extends Provider<Component> {
      * Destroy effects
      */
     public _defs: Array<undefined | void | (() => void)> = [];
+    /**
+     * Hooks
+     */
+    public _hs?: HookInfo[];
     constructor(
         type: typeof Component,
         depth: number,
@@ -49,28 +82,11 @@ export class ComponentProvider extends Provider<Component> {
         const isMount = !self.b;
         const contextType: Context = type.contextType;
         let base = self.b;
-        let contextValue = (type.contextType as Context)?.get(self);
+        const contextValue = contextType?.get(self);
 
         self._cs = contexts;
         if (isMount) {
-            if (type?.prototype?.render) {
-                base = new type(self.ps, contextValue);
-            } else {
-                base = new Component(props, contextValue);
-                base.constructor = type;
-
-                if (type._fr) {
-                    console.log(self);
-                    self.fr = createRef();
-                    base.render = function (this: Component) {
-                        return this.constructor(this.props, self.fr);
-                    }
-                } else {
-                    base.render = renderFunctionComponent;
-                }
-            }
-            base.$_p = self;
-
+            base = createComponent(type, props, contextValue, self);
             self.b = base;
         } else {
             base.props = props;
@@ -127,7 +143,7 @@ export class ComponentProvider extends Provider<Component> {
     public un() {
         const self = this;
         self._ps.forEach(provider => {
-            provider.ud();
+            provider.un();
         });
         const type = self.t;
         (type.contextType as Context)?.unregister(self);

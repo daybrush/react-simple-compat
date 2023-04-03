@@ -11,15 +11,19 @@ export interface CompatElement {
     };
 }
 
+export interface ContextProvider {
+    _cs: Record<string, Component>;
+}
+
 
 export interface Context {
     $_id: string,
     $_dv: any,
     Provider: FunctionComponent;
     Consumer: FunctionComponent;
-    get(provider: Provider): any;
-    register(provider: Provider): void;
-    unregister(provider: Provider): void;
+    get(provider: ContextProvider): any;
+    register(provider: ContextProvider): void;
+    unregister(provider: ContextProvider): void;
 }
 
 export type FunctionComponent

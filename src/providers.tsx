@@ -8,7 +8,8 @@ import { fillKeys, removeNode } from "./utils";
 
 
 export class ContainerProvider extends Provider<any> {
-    constructor(base: Element, depth: number) {
+    public typ = "container";
+    constructor(base: Element, depth = 0) {
         super("container", depth, "container", 0, null);
         this.b = base;
     }
@@ -23,12 +24,15 @@ export class ContainerProvider extends Provider<any> {
 
 
 export class TextProvider extends Provider<Node> {
+    public typ = "text";
     public r(hooks: Function[]) {
         const self = this;
         const isMount = !self.b;
 
         if (isMount) {
-            self.b = document.createTextNode(self.t.replace("text_", ""));
+            const b = self._hyd?.splice(0, 1)[0];
+
+            self.b = b || document.createTextNode(self.t.replace("text_", ""));
         }
         hooks.push(() => {
             if (isMount) {

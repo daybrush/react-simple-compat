@@ -4,7 +4,7 @@ import { Component } from "./base/Component";
 import { ComponentProvider } from "./base/ComponentProvider";
 import { ElementProvider } from "./base/ElementProvider";
 import { Provider, setCurrentInstance } from "./base/Provider";
-import { findDOMNode } from "./externalUtils";
+import { findDOMNode, findNodeProvider } from "./externalUtils";
 import { ContainerProvider, diffProviders, TextProvider } from "./providers";
 import { CompatElement } from "./types";
 import { executeHooks, findContainerNode } from "./utils";
@@ -59,9 +59,24 @@ export function renderProviders(
     isForceUpdate?: boolean,
 ) {
     const result = diffProviders(containerProvider, providers, children);
+    const hyd = containerProvider._hyd;
     const updated = providers.filter((childProvider, i) => {
+        childProvider._hyd = hyd;
         return childProvider.u(updatedHooks, nextContexts, children[i], nextState, isForceUpdate);
     });
+
+    if (containerProvider.typ === "container" && containerProvider._sel) {
+        providers.forEach(provider => {
+            const nodeProvider = findNodeProvider(provider);
+
+            if (nodeProvider) {
+                nodeProvider._sel = true;
+            }
+        });
+    }
+    containerProvider._hyd = null;
+
+
     const containerNode = findContainerNode(containerProvider);
 
     if (containerNode) {
@@ -84,13 +99,13 @@ export function renderProviders(
 export function renderProvider(
     element: any,
     container: Element,
-    provider: Provider | null = (container as any).__CROACT_,
+    provider: Provider | null = (container as any).__CROACT__,
     contexts: Record<string, Component> = {},
 ) {
     const isProvider = !!provider;
 
     if (!provider) {
-        provider = new ContainerProvider(container, 0);
+        provider = new ContainerProvider(container);
     }
     const hooks: Function[] = [];
 
@@ -100,22 +115,60 @@ export function renderProvider(
         element ? [element] : [],
         hooks,
         contexts,
+        undefined,
+        undefined,
     );
-
     executeHooks(hooks);
     setCurrentInstance(null);
 
     if (!isProvider) {
-        (container as any).__CROACT_ = provider;
+        (container as any).__CROACT__ = provider;
     }
     return provider;
 }
 
 export function render(element: any, container: Element, callback?: Function) {
-    const provider = (container as any).__CROACT_;
+    const provider = (container as any).__CROACT__;
     if (element && !provider) {
         container.innerHTML = "";
     }
-    renderProvider(element, container, provider);
+    renderProvider(
+        element,
+        container,
+        provider,
+    );
+    callback && callback();
+}
+
+export function renderSelf(
+    element: string | CompatElement,
+    self: Element,
+    containerProvider?: ContainerProvider,
+) {
+    if (!containerProvider && element) {
+        containerProvider = new ContainerProvider(self.parentElement);
+        containerProvider._hyd = [self];
+        containerProvider._sel = true;
+    }
+    renderProvider(
+        element,
+        self,
+        containerProvider,
+    );
+    return containerProvider;
+}
+
+export function hydrate(element: any, container: Element, callback?: Function) {
+    const containerProvider = new ContainerProvider(container);
+
+    if (element) {
+        containerProvider._hyd = [].slice.call(container.children);
+        (container as any).__CROACT__ = containerProvider;
+    }
+    renderProvider(
+        element,
+        container,
+        containerProvider,
+    );
     callback && callback();
 }

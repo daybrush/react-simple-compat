@@ -1,15 +1,16 @@
 import { find, getValues, IObject, isString } from "@daybrush/utils";
 import { Component } from "./Component";
-import { CompatElement, Ref } from "../types";
+import { CompatElement, ContextProvider, Ref } from "../types";
 import { flat } from "../utils";
 import { renderProviders } from "../renderProviders";
-import { createRef } from "./refs";
+import { HooksProvider } from "../hooks/hooks";
 
 
 let hooksIndex = 0;
-let current: Provider | null = null;
+let current: Provider | HooksProvider | null = null;
 
-export abstract class Provider<T extends Element | Component | Node = Element | Component | Node> {
+export abstract class Provider<T extends Element | Component | Node = Element | Component | Node> implements ContextProvider {
+    public typ = "prov";
     /**
      * Original
      */
@@ -30,7 +31,14 @@ export abstract class Provider<T extends Element | Component | Node = Element | 
      * Contexts
      */
     public _cs: Record<string, Component> = {};
-
+    /**
+     * Whether to hydrate
+     */
+    public _hyd: Node[] | null = null;
+    /**
+     * is self render
+     */
+    public _sel = false;
     constructor(
         /**
          * Type
@@ -183,7 +191,7 @@ export function getHooksIndex() {
 export function setHooksInex(nextHooksIndex: number) {
     hooksIndex = nextHooksIndex;
 }
-export function setCurrentInstance(provider: Provider | null) {
+export function setCurrentInstance(provider: Provider | HooksProvider | null) {
     current = provider;
     hooksIndex = 0;
 }
