@@ -76,6 +76,9 @@
 
         return Croact.createElement("div", {
             ref: ref1,
+            style: {
+                borderRadius: "5px",
+            }
         }, [`HI2`]);
     });
 
@@ -89,4 +92,5 @@
 
 
     console.log(Croact.renderToString(Croact.createElement(App)));
+    console.log(Croact.renderSelfToString(Croact.createElement(App)));
 </script>

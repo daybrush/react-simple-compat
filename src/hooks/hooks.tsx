@@ -132,7 +132,7 @@ export function useEffect(effect: () => (() => any) | undefined | void, deps?: a
 
 export function useImperativeHandle(ref: Ref, func: () => any, deps?: any[]) {
     useEffect(() => {
-        ref(func());
+        ref?.(func());
     }, deps, true);
 }
 
