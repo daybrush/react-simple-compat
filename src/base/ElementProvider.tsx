@@ -220,7 +220,6 @@ export class ElementProvider extends Provider<Element> {
         self._es = {};
 
         if (!self.ps.portalContainer && !self._sel) {
-            console.log(base);
             removeNode(base);
         }
     }
